@@ -1,31 +1,33 @@
 jasper-client
 =============
 
-[![Build Status](https://travis-ci.org/jasperproject/jasper-client.svg?branch=master)](https://travis-ci.org/jasperproject/jasper-client) [![Coverage Status](https://img.shields.io/coveralls/jasperproject/jasper-client.svg)](https://coveralls.io/r/jasperproject/jasper-client) [![Codacy Badge](https://www.codacy.com/project/badge/3a50e1bc2261419894d76b7e2c1ac694)](https://www.codacy.com/app/jasperproject/jasper-client)
+**NOTE: This is a fork of the [jasper client code](https://github.com/jasperproject/jasper-client).**
 
-Client code for the Jasper voice computing platform. Jasper is an open source platform for developing always-on, voice-controlled applications.
+>Client code for the Jasper voice computing platform. Jasper is an open source platform for developing always-on, voice-controlled applications.
+>
+>Learn more at [jasperproject.github.io](http://jasperproject.github.io/), where we have assembly and installation instructions, as well as extensive documentation. For the relevant disk image, please visit [SourceForge](http://sourceforge.net/projects/jasperproject/).
 
-Learn more at [jasperproject.github.io](http://jasperproject.github.io/), where we have assembly and installation instructions, as well as extensive documentation. For the relevant disk image, please visit [SourceForge](http://sourceforge.net/projects/jasperproject/).
+# Setup/Install
+This repo is part of an academic project I'm involved with, requiring the use of Jasper and Snowboy on a Raspberry Pi 2 Model B.
+More extensive documentation forms part of the academic project itself. I may get around to merging that documentation here in the future.
 
-## Contributing
+## Imaging the Raspberry Pi with Jasper v1.5
+Follow the instructions here: https://github.com/mattcurrycom/Documentation/tree/master/jasper
 
-If you'd like to contribute to Jasper, please read through our **[Contributing Guide](CONTRIBUTING.md)**, which outlines the philosophies to preserve, tests to run, and more. We highly recommend reading through this guide before writing any code.
+Useful Links
+* http://jasperproject.github.io/
+* https://groups.google.com/forum/#!forum/jasper-support-forum
 
-The Contributing Guide also outlines some prospective features and areas that could use love. However, for a more thorough overview of Jasper's direction and goals, check out the **[Product Roadmap](https://github.com/jasperproject/jasper-client/wiki/Roadmap)**.
+## Post Image Setup
+https://github.com/mattcurrycom/Documentation/blob/master/jasper/jasper-client/Jasper-Post-Image-Setup.md
 
-Thanks in advance for any and all work you contribute to Jasper!
-
-## Support
-
-If you run into an issue or require technical support, please first look through the closed and open **[GitHub Issues](https://github.com/jasperproject/jasper-client/issues)**, as you may find a solution there (or some useful advice, at least).
-
-If you're still having trouble, the next place to look would be the new **[Google Group support forum](https://groups.google.com/forum/#!forum/jasper-support-forum)** or join the `#jasper` IRC channel on **chat.freenode.net**. If your problem remains unsolved, feel free to create a post there describing the issue, the steps you've taken to debug it, etc.
-
-## Contact
-
-Jasper's core developers are [Shubhro Saha](http://www.shubhro.com), [Charles Marsh](http://www.crmarsh.com) and [Jan Holthuis](http://homepage.ruhr-uni-bochum.de/Jan.Holthuis/).  All of them can be reached by email at [saha@princeton.edu](mailto:saha@princeton.edu), [crmarsh@princeton.edu](mailto:crmarsh@princeton.edu) and [jan.holthuis@ruhr-uni-bochum.de](mailto:jan.holthuis@ruhr-uni-bochum.de) respectively. However, for technical support and other problems, please go through the channels mentioned above.
-
-For a complete list of code contributors, please see [AUTHORS.md](AUTHORS.md).
+## Setting up [Snowboy](https://snowboy.kitt.ai/) on Jasper Image v1.5
+~~1. Downloaded the source from git (just because, although I'm not using it -- yet...)~~
+1. Downloaded the precompiled Raspberry Pi binaries from [here](https://s3-us-west-2.amazonaws.com/snowboy/snowboy-releases/rpi-arm-raspbian-8.0-1.2.0.tar.bz2) listed on the [Downloads](http://docs.kitt.ai/snowboy/#downloads) section of the docs.
+1. Ran `python demo.py resources/snowboy.umdl` to test out the universal snowboy model (recognises the hotword 'snowboy', but trained on "many different speakers" whatever than implies (different accents?)).
+1. Got an error about ``ImportError: libf77blas.so.3: cannot open shared object file: No such file or directory`` (similar issue raised [here](https://github.com/Kitt-AI/snowboy/issues/94))
+1. So I did ```sudo apt-get install libatlas-base-dev``` which installed a bunch of dependencies as well. IAW the snowboy docs, this is supposed to be done after a ```sudo apt-get install swig3.0 python-pyaudio python3-pyaudio sox``` but I wanted to see if I could get it to work minimally without the other crud (worried about Jasper being quite brittle and sensitive to packages)
+1. Re-ran `python demo.py resources/snowboy.umdl` and it worked very well.
 
 ## License
 
