@@ -127,9 +127,13 @@ if __name__ == "__main__":
     print("* (c) 2015 Shubhro Saha, Charlie Marsh & Jan Holthuis *")
     print("*******************************************************")
 
+    print(sys.version)
+
     logging.basicConfig()
     logger = logging.getLogger()
     logger.getChild("client.stt").setLevel(logging.INFO)
+    logger.getChild("client.emotion").setLevel(logging.INFO)
+    logger.getChild("client.mic").setLevel(logging.INFO)
 
     if args.debug:
         logger.setLevel(logging.DEBUG)

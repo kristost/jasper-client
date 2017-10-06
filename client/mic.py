@@ -10,6 +10,8 @@ import pyaudio
 import alteration
 import jasperpath
 
+from emotion import Emotion
+import os
 
 class Mic:
 
@@ -35,6 +37,8 @@ class Mic:
                           "can usually be safely ignored.")
         self._audio = pyaudio.PyAudio()
         self._logger.info("Initialization of PyAudio completed.")
+
+        self._emotion = Emotion()
 
     def __del__(self):
         self._audio.terminate()
@@ -245,13 +249,23 @@ class Mic:
         stream.stop_stream()
         stream.close()
 
-        with tempfile.SpooledTemporaryFile(mode='w+b') as f:
+        with tempfile.NamedTemporaryFile(mode='w+b', delete=True, suffix='.wav') as f:
             wav_fp = wave.open(f, 'wb')
             wav_fp.setnchannels(1)
             wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
             wav_fp.setframerate(RATE)
             wav_fp.writeframes(''.join(frames))
             wav_fp.close()
+
+            #arff_handle, arff = tempfile.mkstemp(suffix='.arff', text=True)
+            #self._logger.info('Trying to "touch" ARFF file: {}'.format(arff))
+            #os.close(arff_handle)
+            self._logger.info('Trying to read WAV file: {}'.format(f.name))
+            ret = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
+            self._logger.info('Return code from featurise: {}'.format(ret))
+            prediction, label = self._emotion.predict_no_pandas('/tmp/tmpOpenSMILE.arff')
+            self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
+
             f.seek(0)
             return self.active_stt_engine.transcribe(f)
 
