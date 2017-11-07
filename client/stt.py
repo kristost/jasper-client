@@ -61,6 +61,47 @@ class AbstractSTTEngine(object):
     def transcribe(self, fp):
         pass
 
+class SnowboySTT(AbstractSTTEngine):
+    from snowboy_stt import snowboydetect as snowboydetect
+
+    # The engine name for active/passive stt engine in profile
+    SLUG = "snowboy"
+
+    def __init__(self):
+        self._logger = logging.getLogger(__name__)
+
+        self._logger.debug("Initialising " + "'%s'", "SNOWBOY")
+
+        SNOWBOY_PATH = "/snowboy_stt"
+        self.resource_file = jasperpath.LIB_PATH + SNOWBOY_PATH + "/resources/common.res"
+        self.model = jasperpath.LIB_PATH + SNOWBOY_PATH + "/resources/snowboy.umdl"
+
+        self.sensitivity = "0.50"
+
+        self.detector = snowboydetect.SnowboyDetect(
+            resource_filename=self.resource_file,
+            model_str=self.model)
+        self.detector.SetAudioGain(1)
+        self.detector.SetSensitivity(self.sensitivity)
+
+
+    def transcribe(self, fp):
+        self._logger.debug("Attempting to transcribe using: " + "'%s'", "SNOWBOY")
+
+        data = fp.read()
+
+        ans = self.detector.RunDetection(data)
+    
+        self._logger.info("Transcribed: %r", ans)
+        self._logger.info("SNOWBOY detector reports return value of: " + "'%s'", ans)
+
+        if ans == 0:
+            self._logger.info("Detected a voice")
+            return []
+        elif ans > 0:
+            return ["JASPER"]
+        else:
+            return []
 
 class PocketSphinxSTT(AbstractSTTEngine):
     """
@@ -533,48 +574,6 @@ class AttSTT(AbstractSTTEngine):
     @classmethod
     def is_available(cls):
         return diagnose.check_network_connection()
-
-class SnowboySTT(AbstractSTTEngine):
-    from snowboy_stt import snowboydetect as snowboydetect
-
-    # The engine name for active/passive stt engine in profile
-    SLUG = "snowboy"
-
-    def __init__(self):
-        self._logger = logging.getLogger(__name__)
-
-        self._logger.debug("Initialising " + "'%s'", "SNOWBOY")
-
-        SNOWBOY_PATH = "/snowboy_stt"
-        self.resource_file = jasperpath.LIB_PATH + SNOWBOY_PATH + "/resources/common.res"
-        self.model = jasperpath.LIB_PATH + SNOWBOY_PATH + "/resources/snowboy.umdl"
-
-        self.sensitivity = "0.50"
-
-        self.detector = snowboydetect.SnowboyDetect(
-            resource_filename=self.resource_file,
-            model_str=self.model)
-        self.detector.SetAudioGain(1)
-        self.detector.SetSensitivity(self.sensitivity)
-
-
-    def transcribe(self, fp):
-        self._logger.debug("Attempting to transcribe using: " + "'%s'", "SNOWBOY")
-
-        data = fp.read()
-
-        ans = self.detector.RunDetection(data)
-    
-        self._logger.info("Transcribed: %r", ans)
-        self._logger.info("SNOWBOY detector reports return value of: " + "'%s'", ans)
-
-        if ans == 0:
-            self._logger.info("Detected a voice")
-            return []
-        elif ans > 0:
-            return ["JASPER"]
-        else:
-            return []
 
 
 class WitAiSTT(AbstractSTTEngine):

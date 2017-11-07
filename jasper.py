@@ -134,6 +134,7 @@ if __name__ == "__main__":
     logger.getChild("client.stt").setLevel(logging.INFO)
     logger.getChild("client.emotion").setLevel(logging.INFO)
     logger.getChild("client.mic").setLevel(logging.INFO)
+    logger.getChild("client.conversation").setLevel(logging.INFO)
 
     if args.debug:
         logger.setLevel(logging.DEBUG)

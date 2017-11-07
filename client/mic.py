@@ -133,6 +133,7 @@ class Mic:
         # this will be the benchmark to cause a disturbance over!
         THRESHOLD = average * THRESHOLD_MULTIPLIER
 
+        self._logger.info('Established a threshold of {}'.format(THRESHOLD))
         # save some memory for sound data
         frames = []
 
@@ -147,6 +148,7 @@ class Mic:
             score = self.getScore(data)
 
             if score > THRESHOLD:
+                self._logger.info('Threshold breached with score of {}'.format(score))
                 didDetect = True
                 break
 
@@ -160,6 +162,7 @@ class Mic:
         # cutoff any recording before this disturbance was detected
         frames = frames[-20:]
 
+        self._logger.info('Started recording speech')
         # otherwise, let's keep recording for few seconds and save the file
         DELAY_MULTIPLIER = 1
         for i in range(0, RATE / CHUNK * DELAY_MULTIPLIER):
@@ -167,6 +170,7 @@ class Mic:
             data = stream.read(CHUNK)
             frames.append(data)
 
+        self._logger.info('Stopped recording speech')
         # save the audio data
         stream.stop_stream()
         stream.close()
@@ -228,6 +232,8 @@ class Mic:
         # generation
         lastN = [THRESHOLD * 1.2 for i in range(30)]
 
+        self._logger.info('Established a command threshold of {}'.format(THRESHOLD * 0.8))
+
         for i in range(0, RATE / CHUNK * LISTEN_TIME):
 
             data = stream.read(CHUNK)
@@ -241,7 +247,10 @@ class Mic:
 
             # TODO: 0.8 should not be a MAGIC NUMBER!
             if average < THRESHOLD * 0.8:
+                self._logger.info('Sound level {} is below threshold'.format(average))
                 break
+
+        self._logger.info('Command speech recording time max reached')
 
         self.speaker.play(jasperpath.data('audio', 'beep_lo.wav'))
 
