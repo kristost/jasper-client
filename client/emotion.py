@@ -30,14 +30,21 @@ class Emotion(object):
                 ' -I ', input,
                 ' -O ', output]
 
-        self._logger.info(args)
+        self._logger.debug(args)
         cmd = ''.join(args)
         #print(cmd)
+
+        start_time = timeit.default_timer()
+
         p = subprocess.Popen(cmd, shell=True, bufsize=-1)
         (output, err) = p.communicate()
         p_status = p.wait()
         #print(p_status)
         #ret = subprocess.check_call(args, shell=True)
+
+        elapsed = timeit.default_timer() - start_time
+        self._logger.info('Total elapsed time for openSMILE feature extraction: {}'.format(str(timedelta(seconds=elapsed))))
+
         return p_status
 
     def predict(self, feature_file):

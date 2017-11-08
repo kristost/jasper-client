@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+from __future__ import print_function
+import sys
+import timeit
 
 import collections
 import pyaudio
@@ -164,8 +166,17 @@ class HotwordDetector(object):
                 continue
 
             ans = self.detector.RunDetection(data)
-            if ans == -1:
+            
+            if ans == -2:
+                #print('s', end='')
+                #sys.stdout.flush()
+                pass
+            elif ans == -1:
                 logger.warning("Error initializing streams or reading audio data")
+            elif ans == 0:
+                #print('v', end='')
+                #sys.stdout.flush()
+                pass
             elif ans > 0:
                 message = "Keyword " + str(ans) + " detected at time: "
                 message += time.strftime("%Y-%m-%d %H:%M:%S",

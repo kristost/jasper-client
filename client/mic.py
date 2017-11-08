@@ -244,6 +244,7 @@ class Mic:
 
         self._logger.info('Established a command threshold of {}'.format(THRESHOLD * 0.8))
 
+        timeout_reached = True
         for i in range(0, RATE / CHUNK * LISTEN_TIME):
 
             data = stream.read(CHUNK)
@@ -258,9 +259,11 @@ class Mic:
             # TODO: 0.8 should not be a MAGIC NUMBER!
             if average < THRESHOLD * 0.8:
                 self._logger.info('Sound level {} is below threshold'.format(average))
+                timeout_reached = False
                 break
 
-        self._logger.info('Command speech recording time max reached')
+        if timeout_reached:
+            self._logger.info('Command speech recording time max reached')
 
         self.speaker.play(jasperpath.data('audio', 'beep_lo.wav'))
 
@@ -279,9 +282,9 @@ class Mic:
             #arff_handle, arff = tempfile.mkstemp(suffix='.arff', text=True)
             #self._logger.info('Trying to "touch" ARFF file: {}'.format(arff))
             #os.close(arff_handle)
-            self._logger.info('Trying to read WAV file: {}'.format(f.name))
+            self._logger.debug('Trying to read WAV file: {}'.format(f.name))
             ret = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
-            self._logger.info('Return code from featurise: {}'.format(ret))
+            self._logger.debug('Return code from featurise: {}'.format(ret))
             prediction, label = self._emotion.predict_no_pandas('/tmp/tmpOpenSMILE.arff')
             self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
 
