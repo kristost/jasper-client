@@ -21,6 +21,8 @@ sys.path.append(jasperpath.LIB_PATH)
 parser = argparse.ArgumentParser(description='Jasper Voice Control Center')
 parser.add_argument('--local', action='store_true',
                     help='Use text input instead of a real microphone')
+parser.add_argument('--local-greeting', action='store_true',
+                    help='Use text greeting at startup instead of an audio greeting')
 parser.add_argument('--no-network-check', action='store_true',
                     help='Disable the network connection check')
 parser.add_argument('--diagnose', action='store_true',
@@ -109,13 +111,21 @@ class Jasper(object):
                        stt_passive_engine_class.get_passive_instance(),
                        stt_engine_class.get_active_instance())
 
+        # Initialise a local_mic for outputting text only
+        import client.local_mic 
+        self.text_mic = client.local_mic.Mic(None,None,None)
+
     def run(self):
         if 'first_name' in self.config:
             salutation = ("How can I be of service, %s?"
                           % self.config["first_name"])
         else:
             salutation = "How can I be of service?"
-        self.mic.say(salutation)
+        
+        if args.local_greeting:
+            self.text_mic.say(salutation)
+        else:
+            self.mic.say(salutation)
 
         conversation = Conversation("JASPER", self.mic, self.config)
         conversation.handleForever()
