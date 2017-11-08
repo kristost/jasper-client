@@ -35,6 +35,8 @@ class Conversation(object):
             if not transcribed or not threshold:
                 self._logger.info("Nothing has been said or transcribed.")
                 continue
+
+            threshold = None
             self._logger.info("Keyword '%s' has been said!", self.persona)
 
             self._logger.debug("Started to listen actively with threshold: %r",
@@ -43,7 +45,7 @@ class Conversation(object):
             self._logger.debug("Stopped to listen actively with threshold: %r",
                                threshold)
 
-            if input:
-                self.brain.query(input)
-            else:
-                self.mic.say("Pardon?")
+#            if input:
+#                self.brain.query(input)
+#            else:
+#                self.mic.say("Pardon?")

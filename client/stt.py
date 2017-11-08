@@ -16,6 +16,7 @@ import jasperpath
 import diagnose
 import vocabcompiler
 from snowboy_stt import snowboydetect as snowboydetect
+from snowboy_stt import snowboydecoder as snowboydecoder
 
 class AbstractSTTEngine(object):
     """
@@ -62,10 +63,57 @@ class AbstractSTTEngine(object):
         pass
 
 class SnowboySTT(AbstractSTTEngine):
-    from snowboy_stt import snowboydetect as snowboydetect
+    #from snowboy_stt import snowboydetect as snowboydetect
+    from snowboy_stt import snowboydecoder as snowboydecoder
 
     # The engine name for active/passive stt engine in profile
     SLUG = "snowboy"
+
+    def __init__(self):
+        self._logger = logging.getLogger(__name__)
+
+        self._logger.debug("Initialising " + "'%s'", "SNOWBOY")
+
+        SNOWBOY_PATH = "/snowboy_stt"
+        self.resource_file = jasperpath.LIB_PATH + SNOWBOY_PATH + "/resources/common.res"
+        self.model = jasperpath.LIB_PATH + SNOWBOY_PATH + "/resources/snowboy.umdl"
+
+        self.sensitivity = "0.50"
+
+        self.detector = snowboydecoder.HotwordDetector(self.model,
+            sensitivity=self.sensitivity)
+
+    def transcribe(self, fp=None):
+        self._logger.debug("Attempting to transcribe using: " + "'%s'", "SNOWBOY")
+
+        global hotword_detected
+        hotword_detected = False
+
+
+        def detection_callback(ans=None, data=None):
+            global hotword_detected
+            snowboydecoder.play_audio_file()
+            hotword_detected = True
+
+        def interrupt_callback():
+            return hotword_detected
+
+        self.detector.start(detected_callback=detection_callback,
+            interrupt_check=interrupt_callback)
+
+        self.detector.terminate()
+
+        if hotword_detected:
+            return ["JASPER"]
+        else:
+            return []
+
+
+class SnowboySTT_off(AbstractSTTEngine):
+    from snowboy_stt import snowboydetect as snowboydetect
+
+    # The engine name for active/passive stt engine in profile
+    SLUG = "snowboy_off"
 
     def __init__(self):
         self._logger = logging.getLogger(__name__)

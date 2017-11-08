@@ -90,7 +90,7 @@ class Mic:
 
         return THRESHOLD
 
-    def passiveListen(self, PERSONA):
+    def passiveListen_off(self, PERSONA):
         """
         Listens for PERSONA in everyday sound. Times out after LISTEN_TIME, so
         needs to be restarted.
@@ -190,6 +190,16 @@ class Mic:
             return (THRESHOLD, PERSONA)
 
         return (False, transcribed)
+
+    def passiveListen(self, PERSONA):
+        
+        transcribed = self.passive_stt_engine.transcribe(None)
+        
+        if any(PERSONA in phrase for phrase in transcribed):
+            return (True, PERSONA)
+
+        return (False, transcribed)
+        
 
     def activeListen(self, THRESHOLD=None, LISTEN=True, MUSIC=False):
         """
