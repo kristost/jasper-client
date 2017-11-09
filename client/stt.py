@@ -62,6 +62,93 @@ class AbstractSTTEngine(object):
     def transcribe(self, fp):
         pass
 
+class BingSTT(AbstractSTTEngine):
+
+    SLUG = "bingSTT"
+
+    def __init__(self, access_token):
+        self._logger = logging.getLogger(__name__)
+        #TODO: Like to change this to 'subscription_key'
+        self.token = access_token
+
+    @classmethod
+    def get_config(cls):
+        config = {}
+        
+        profile_path = jasperpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'bing-stt' in profile:
+                    if 'access_token' in profile['bing-stt']:
+                        config['access_token'] =\
+                            profile['bing-stt']['access_token']
+
+        return config
+
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, value):
+        self._token = value
+        self._headers = {'Ocp-Apim-Subscription-Key': self.token,
+                         'Transfer-Encoding': 'chunked',
+                         'accept': 'application/json',
+                         'Content-Type': 'audio/wav; codec=audio/pcm; samplerate=16000'}
+
+    @property
+    def headers(self):
+        return self._headers
+
+    def transcribe(self, fp):
+        #TODO: make configurable from profile
+        base_url = "https://speech.platform.bing.com/speech/recognition/{}/cognitiveservices/"
+        params = "v1?language={}&format={}"
+        recog_mode = "interactive"
+        lang_tag = "en-CA" # "en-US", "en-GB"
+        output_fmt = "simple" #"detailed"
+
+        http_address = base_url.format(recog_mode) + params.format(lang_tag, output_fmt)
+        self._logger.debug("Bing http address = {}".format(http_address))
+        
+        def chunk_file(f, chunk_size=4096):
+            return iter(lambda: f.read(chunk_size), b'')
+
+        r = requests.post(http_address,
+                          data=chunk_file(fp),
+                          headers=self.headers)
+        try:
+            r.raise_for_status()
+            text = r.json()['DisplayText']
+        except requests.exceptions.HTTPError:
+            self._logger.critical('Request failed with response: %r',
+                                  r.text,
+                                  exc_info=True)
+            return []
+        except requests.exceptions.RequestException:
+            self._logger.critical('Request failed.', exc_info=True)
+            return []
+        except ValueError as e:
+            self._logger.critical('Cannot parse response: %s',
+                                  e.args[0])
+            return []
+        except KeyError:
+            self._logger.critical('Cannot parse response.',
+                                  exc_info=True)
+            return []
+        else:
+            transcribed = []
+            if text:
+                transcribed.append(text.upper())
+            self._logger.info('Transcribed: %r', transcribed)
+            return transcribed
+
+    @classmethod
+    def is_available(cls):
+        return diagnose.check_network_connection()
+
 class SnowboySTT(AbstractSTTEngine):
     #from snowboy_stt import snowboydetect as snowboydetect
     from snowboy_stt import snowboydecoder as snowboydecoder
