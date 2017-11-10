@@ -83,7 +83,104 @@ class AbstractTTSEngine(object):
             if output:
                 self._logger.debug("Output was: '%s'", output)
 
+class BingTTS(AbstractTTSEngine):
 
+    SLUG = "bingTTS"
+
+    def __init__(self, access_token):
+        self._logger = logging.getLogger(__name__)
+        self.token = access_token
+        self.bearer_token = ''
+
+    @classmethod
+    def get_config(cls):
+        config = {}
+
+        profile_path = jasperpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'bing-tts' in profile:
+                    if 'access_token' in profile['bing-tts']:
+                        config['access_token'] =\
+                            profile['bing-tts']['access_token']
+        return config
+
+    @classmethod
+    def is_available(cls):
+        return(super(cls, cls).is_available() and
+            diagnose.check_network_connection())
+
+
+    def authenticate(self):
+
+        self._logger.info("Authorizing/Renewing OAuth Bearer token")
+        auth_url = 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken'
+        auth_headers = {'Ocp-Apim-Subscription-Key': '662a831a31ca4297a8bc5b1b107e8aa3'}
+
+        r = requests.post(auth_url, headers=auth_headers)
+        self.bearer_token = r.text
+
+    def say(self, phrase):
+        
+        base_url = 'https://speech.platform.bing.com/synthesize'
+        headers = {'Content-Type': 'application/ssml+xml',
+                    'X-Microsoft-OutputFormat': 'riff-16khz-16bit-mono-pcm',
+                    'X-Search-AppId': 'B320F77CBC704608A824213223C5FCE0',
+                    'X-Search-ClientId': '4A6853C3E464491EB7B1D77000F74E18',
+                    'User-Agent': 'Jasper',
+                    'Authorization': 'Bearer ' + self.bearer_token}
+        
+        ssml = "<speak version='1.0' xml:lang='en-US'>" +\
+                "<voice xml:lang='en-US'" +\
+                " xml:gender='Female' name='Microsoft Server Speech Text to Speech Voice (en-US, ZiraRUS)'>" +\
+                "{}</voice></speak>"
+        
+        ssml = ssml.format(phrase)
+
+        r = requests.post(base_url, data=ssml, headers=headers)
+        self._logger.debug(r.status_code)
+        
+        if r.status_code in [401, 403]:
+            self._logger.info('OAuth access token invalid/expired, generating a ' +
+                            'new one and retrying...')
+            self.authenticate()
+            headers['Authorization'] = 'Bearer ' + self.bearer_token
+    
+            self._logger.debug('Making another attempt')
+            r = requests.post(base_url, data=ssml, headers=headers)
+        
+        try:
+            r.raise_for_status()
+        except requests.exceptions.HTTPError:
+            self._logger.critical('Request failed with response: %r', r.reason, exc_info=True)            
+        else:
+            fname = self.write_audio(r.content)
+            self._logger.debug("Saying '%s' with '%s'", phrase, self.SLUG)
+            self.play(fname)
+            os.remove(fname)
+        
+
+    def write_audio(self, data):
+        
+        fname = None
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+            fname = f.name
+            print(fname)
+            #for chunk in r.iter_content(chunk_size=4096):
+            #    f.write(chunk)
+            # TODO: make configurable from function params
+            wav_fp = wave.open(f, 'wb')
+            wav_fp.setnchannels(1)
+            wav_fp.setsampwidth(2L)
+            wav_fp.setframerate(16000)
+            # TODO: iterated read/write using yield?
+            wav_fp.writeframes(data)
+            wav_fp.close()
+        
+        return fname
+
+            
 class AbstractMp3TTSEngine(AbstractTTSEngine):
     """
     Generic class that implements the 'play' method for mp3 files
@@ -709,3 +806,4 @@ if __name__ == '__main__':
         print("%d. Testing engine '%s'..." % (i, engine.SLUG))
         engine.get_instance().say("This is a test.")
     print("Done.")
+
