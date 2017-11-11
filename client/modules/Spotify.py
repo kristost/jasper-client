@@ -2,16 +2,17 @@
 import re
 import logging
 import difflib
-import mpd
+import mpd as mpd2
 from client.mic import Mic
+#import MPDWrapper2
 
 # Standard module stuff
-WORDS = ["MUSIC"]
+WORDS = ["SPOTIFY"]
 
 
 def handle(text, mic, profile):
     """
-    Responds to user-input, typically speech text, by telling a joke.
+    Spotify module to play songs, playlists
 
     Arguments:
         text -- user-input, typically transcribed speech
@@ -28,7 +29,7 @@ def handle(text, mic, profile):
         if 'port' in profile['mpdclient']:
             kwargs['port'] = int(profile['mpdclient']['port'])
 
-    logger.debug("Preparing to start music module")
+    logger.debug("Preparing to start Spotify module")
     try:
         mpdwrapper = MPDWrapper(**kwargs)
     except:
@@ -42,17 +43,17 @@ def handle(text, mic, profile):
     # FIXME: Make this configurable
     persona = 'JASPER'
 
-    logger.debug("Starting music mode")
+    logger.debug("Starting spotify mode")
     music_mode = MusicMode(persona, mic, mpdwrapper)
     music_mode.handleForever()
-    logger.debug("Exiting music mode")
+    logger.debug("Exiting spotify mode")
 
     return
 
 
 def isValid(text):
     """
-        Returns True if the input is related to jokes/humor.
+        Returns True if the input is related to Spotify.
 
         Arguments:
         text -- user-input, typically transcribed speech
@@ -67,50 +68,43 @@ class MusicMode(object):
         self._logger = logging.getLogger(__name__)
         self.persona = PERSONA
         # self.mic - we're actually going to ignore the mic they passed in
+        self.mic = mic
         self.music = mpdwrapper
 
         # index spotify playlists into new dictionary and language models
         phrases = ["STOP", "CLOSE", "PLAY", "PAUSE", "NEXT", "PREVIOUS",
                    "LOUDER", "SOFTER", "LOWER", "HIGHER", "VOLUME",
                    "PLAYLIST"]
-        phrases.extend(self.music.get_soup_playlist())
+        #phrases.extend(self.music.get_soup_playlist())
 
-        music_stt_engine = mic.active_stt_engine.get_instance('music', phrases)
+        #music_stt_engine = mic.active_stt_engine.get_instance('music', phrases)
 
-        self.mic = Mic(mic.speaker,
-                       mic.passive_stt_engine,
-                       music_stt_engine)
+        #self.mic = Mic(mic.speaker,
+        #               mic.passive_stt_engine,
+        #               music_stt_engine)
 
     def delegateInput(self, input):
 
         command = input.upper()
 
         # check if input is meant to start the music module
-        if "PLAYLIST" in command:
+        if "SPOTIFY" in command:
+            success, result = self.music.searchadd(command)
+            self._logger.info("Search success: {}; Found: {}".format(success, result))
+            if success:
+                self.mic.say("Playing %s" % self.music.current_song())
+                self.music.play()
+            else:
+                self.mic.say("Sorry, I couldn't find {} by {}".format(result[0], result[1]))
+            
+            return
+        elif "PLAYLIST" in command:
             command = command.replace("PLAYLIST", "")
+        elif "PLAY LIST" in command:
+            command = command.replace("PLAY LIST", "")
         elif "STOP" in command:
             self.mic.say("Stopping music")
             self.music.stop()
-            return
-        elif "PLAY" in command:
-            self.mic.say("Playing %s" % self.music.current_song())
-            self.music.play()
-            return
-        elif "PAUSE" in command:
-            self.mic.say("Pausing music")
-            # not pause because would need a way to keep track of pause/play
-            # state
-            self.music.stop()
-            return
-        elif any(ext in command for ext in ["LOUDER", "HIGHER"]):
-            self.mic.say("Louder")
-            self.music.volume(interval=10)
-            self.music.play()
-            return
-        elif any(ext in command for ext in ["SOFTER", "LOWER"]):
-            self.mic.say("Softer")
-            self.music.volume(interval=-10)
-            self.music.play()
             return
         elif "NEXT" in command:
             self.mic.say("Next song")
@@ -124,7 +118,30 @@ class MusicMode(object):
             self.music.previous()
             self.mic.say("Playing %s" % self.music.current_song())
             return
-
+        elif "CURRENT" in command:
+            self.mic.say("Playing %s" % self.music.current_song())
+            return
+        elif "PLAY" in command:
+            self.mic.say("Playing %s" % self.music.current_song())
+            self.music.play()
+            return
+        elif "PAUSE" in command:
+            self.mic.say("Pausing music")
+            # not pause because would need a way to keep track of pause/play
+            # state
+            self.music.stop()
+            return
+        elif any(ext in command for ext in ["LOUDER", "HIGHER", "TURN IT UP"]):
+            self.mic.say("Louder")
+            self.music.volume(interval=10)
+            self.music.play()
+            return
+        elif any(ext in command for ext in ["SOFTER", "LOWER", "TURN IT DOWN"]):
+            self.mic.say("Softer")
+            self.music.volume(interval=-10)
+            self.music.play()
+            return
+        
         # SONG SELECTION... requires long-loading dictionary and language model
         # songs = self.music.fuzzy_songs(query = command.replace("PLAY", ""))
         # if songs:
@@ -142,22 +159,23 @@ class MusicMode(object):
         #     self.mic.say("No songs found. Resuming current song.")
         #     self.music.play()
 
+        #==========================
         # PLAYLIST SELECTION
-        playlists = self.music.fuzzy_playlists(query=command)
-        if playlists:
-            self.mic.say("Loading playlist %s" % playlists[0])
-            self.music.play(playlist_name=playlists[0])
-            self.mic.say("Playing %s" % self.music.current_song())
-        else:
-            self.mic.say("No playlists found. Resuming current song.")
-            self.music.play()
+        #playlists = self.music.fuzzy_playlists(query=command)
+        #if playlists:
+        #    self.mic.say("Loading playlist %s" % playlists[0])
+        #    self.music.play(playlist_name=playlists[0])
+        #    self.mic.say("Playing %s" % self.music.current_song())
+        #else:
+        #    self.mic.say("No playlists found. Resuming current song.")
+        #    self.music.play()
 
         return
 
     def handleForever(self):
 
-        self.music.play()
-        self.mic.say("Playing %s" % self.music.current_song())
+        #self.music.play()
+        #self.mic.say("Playing %s" % self.music.current_song())
 
         while True:
 
@@ -196,7 +214,7 @@ def reconnect(func, *default_args, **default_kwargs):
         try:
             return func(self, *default_args, **default_kwargs)
         except:
-            self.client = mpd.MPDClient()
+            self.client = mpd2.MPDClient()
             self.client.timeout = None
             self.client.idletimeout = None
             self.client.connect(self.server, self.port)
@@ -220,40 +238,100 @@ class MPDWrapper(object):
         """
             Prepare the client and music variables
         """
+        self._logger = logging.getLogger(__name__)
+
         self.server = server
         self.port = port
 
         # prepare client
-        self.client = mpd.MPDClient()
+        self.client = mpd2.MPDClient()
         self.client.timeout = None
         self.client.idletimeout = None
         self.client.connect(self.server, self.port)
 
         # gather playlists
-        self.playlists = [x["playlist"] for x in self.client.listplaylists()]
+        #self.playlists = [x["playlist"] for x in self.client.listplaylists()]
 
         # gather songs
         self.client.clear()
-        for playlist in self.playlists:
-            self.client.load(playlist)
+        #for playlist in self.playlists:
+        #    self.client.load(playlist)
 
-        self.songs = []  # may have duplicates
+        #self.songs = []  # may have duplicates
         # capitalized strings
-        self.song_titles = []
-        self.song_artists = []
+        #self.song_titles = []
+        #self.song_artists = []
 
-        soup = self.client.playlist()
-        for i in range(0, len(soup) / 10):
-            index = i * 10
-            id = soup[index].strip()
-            title = soup[index + 3].strip().upper()
-            artist = soup[index + 2].strip().upper()
-            album = soup[index + 4].strip().upper()
+        #soup = self.client.playlist()
+        #for i in range(0, len(soup) / 10):
+        #    index = i * 10
+        #    id = soup[index].strip()
+        #    title = soup[index + 3].strip().upper()
+        #    artist = soup[index + 2].strip().upper()
+        #    album = soup[index + 4].strip().upper()
+        #
+        #    self.songs.append(Song(id, title, artist, album))
+        #
+        #    self.song_titles.append(title)
+        #    self.song_artists.append(artist)
 
-            self.songs.append(Song(id, title, artist, album))
+    @reconnect
+    def playsongbyartist(self, title, artist):
+        
+        self.client.clear()
+        search_results = self.client.search('title', title, 'artist', artist)
+        #self._logger.debug(search_results[0])
+        self.client.add(search_results[0]['file'])
+        self.current_song()
+        self.play()
 
-            self.song_titles.append(title)
-            self.song_artists.append(artist)
+
+    @reconnect
+    def searchadd(self, query):
+        query =query.lower()
+        #p = re.compile("play ((?:\w+ ?)+?)by ((?:\w+ ?)+?)(?:on|from) spotify", re.IGNORECASE)
+        title_or_artist = "play ((?:songs|music) by )?(?P<title_or_artist>(?:\w+ ?)+?)(?:on|from) spotify"
+        title_and_artist = "play (?P<title>(?:\w+ ?)+?)by (?P<artist>(?:\w+ ?)+?)(?:on|from) spotify"
+    
+        search_result = None
+    
+        p = re.compile(title_and_artist, re.IGNORECASE)
+        match = p.match(query)
+    
+        if match and match.group('title').strip() not in ['songs', 'music']:
+            self._logger.info(match.groups())
+            #print(match.groups())
+            title = match.group('title').strip()
+            artist = match.group('artist').strip()
+            search_result = self.client.search('title', title, 'artist', artist)
+        else:
+            p = re.compile(title_or_artist, re.IGNORECASE)
+            match = p.match(query)
+            self._logger.info(match.groups())
+            #print(match.groups())
+    
+            keywords = match.group('title_or_artist').strip()
+            if match.group(1) != None:
+                if 'music by' in match.group(1) or 'songs by' in match.group(1):
+                    search_result = self.client.search('artist', keywords)
+            else:
+                search_result = self.client.search('title', keywords)
+        
+        if search_result:
+            search_result = [x for x in search_result if 'track' in x['file']]
+            track = search_result[0]
+            self._logger.info(track)
+            #print(track)
+            
+            self.client.clear()
+            self.client.add(track['file'])
+            #self.current_song()
+            #self.play()
+            return (True, track)
+        else:
+            return (False, match.groups()) #"Sorry, I couldn't find {} by {}".format(match.groups())
+
+
 
     @reconnect
     def play(self, songs=False, playlist_name=False):
@@ -280,8 +358,30 @@ class MPDWrapper(object):
 
     @reconnect
     def current_song(self):
-        item = self.client.playlistinfo(int(self.client.status()["song"]))[0]
-        result = "%s by %s" % (item["title"], item["artist"])
+        
+        #item = self.client.playlistinfo(int(self.client.status()["song"]))[0]
+        #result = "%s by %s" % (item["title"], item["artist"])
+        #return result
+
+        status = self.client.status()
+        info = self.client.playlistinfo()
+
+        result = ''
+        item = None
+        print(status)
+        print(info)
+
+        index = 0
+        if 'song' in status:
+            index = int(status['song'])
+        elif 'state' in status and 'nextsong' in status:
+            index = int(status['nextsong'])
+        else:
+            return 'No song is currently loaded.'
+
+        item = info[index]    
+        print((item['title'], item['artist']))
+        result = "%s, by %s" % (item['title'], item['artist'])
         return result
 
     @reconnect
@@ -410,4 +510,6 @@ class MPDWrapper(object):
         query = query.upper()
         lookup = {n.upper(): n for n in self.playlists}
         results = [lookup[r] for r in difflib.get_close_matches(query, lookup)]
-        return results
+        return resultsA
+
+
