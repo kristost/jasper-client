@@ -38,7 +38,7 @@ class Mic:
         self._audio = pyaudio.PyAudio()
         self._logger.info("Initialization of PyAudio completed.")
 
-        self._emotion = Emotion()
+        self._emotion = Emotion(True)
 
     def __del__(self):
         self._audio.terminate()
@@ -209,9 +209,9 @@ class Mic:
             #subprocess.call(cmd)
 
             self._logger.debug('Trying to read WAV file: {}'.format(f.name))
-            ret = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
+            ret, feature_file = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
             self._logger.debug('Return code from featurise: {}'.format(ret))
-            prediction, label = self._emotion.predict_no_pandas('/tmp/tmpOpenSMILE.arff')
+            prediction, label = self._emotion.predict_no_pandas(feature_file, 'wakeword')
             self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
         
         if any(PERSONA in phrase for phrase in transcribed):
@@ -302,9 +302,9 @@ class Mic:
             #self._logger.info('Trying to "touch" ARFF file: {}'.format(arff))
             #os.close(arff_handle)
             self._logger.debug('Trying to read WAV file: {}'.format(f.name))
-            ret = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
+            ret, feature_file = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
             self._logger.debug('Return code from featurise: {}'.format(ret))
-            prediction, label = self._emotion.predict_no_pandas('/tmp/tmpOpenSMILE.arff')
+            prediction, label = self._emotion.predict_no_pandas(feature_file, 'command')
             self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
 
             f.seek(0)

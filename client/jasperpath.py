@@ -1,5 +1,6 @@
 # -*- coding: utf-8-*-
 import os
+from datetime import datetime
 
 # Jasper main directory
 APP_PATH = os.path.normpath(os.path.join(
@@ -18,3 +19,9 @@ def config(*fname):
 
 def data(*fname):
     return os.path.join(DATA_PATH, *fname)
+
+# This really shouldn't be here, but putting it here
+# will allow access without having to touch every file that needs it.
+# Kludgy, I know.
+def get_timestamp(fmt='%d%m%YT%H%M%S'):
+    return datetime.now().strftime(fmt)
