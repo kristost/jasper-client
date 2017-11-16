@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import timeit
+import copy
 
 import collections
 import pyaudio
@@ -156,6 +157,9 @@ class HotwordDetector(object):
 
         logger.debug("detecting...")
 
+        # Keep the last 2 seconds of audio in a separate ring buffer
+        # It can be returned in the detected_callback for processing by other modules.
+        sum_data = collections.deque(maxlen=self.detector.NumChannels() * self.detector.SampleRate() * 2)
         while self._running is True:
             if interrupt_check():
                 logger.debug("detect voice break")
@@ -170,12 +174,14 @@ class HotwordDetector(object):
             if ans == -2:
                 #print('s', end='')
                 #sys.stdout.flush()
+                sum_data.clear()
                 pass
             elif ans == -1:
                 logger.warning("Error initializing streams or reading audio data")
             elif ans == 0:
                 #print('v', end='')
                 #sys.stdout.flush()
+                sum_data.extend(data)
                 pass
             elif ans > 0:
                 message = "Keyword " + str(ans) + " detected at time: "
@@ -184,7 +190,10 @@ class HotwordDetector(object):
                 logger.info(message)
                 callback = detected_callback[ans - 1]
                 if callback is not None:
-                    callback()
+                    sum_data.extend(data)
+                    callback_data = copy.deepcopy(sum_data)
+                    sum_data.clear()
+                    callback(ans, callback_data)
 
         logger.debug("finished.")
 

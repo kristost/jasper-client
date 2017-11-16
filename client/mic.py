@@ -193,7 +193,26 @@ class Mic:
 
     def passiveListen(self, PERSONA):
         
-        transcribed = self.passive_stt_engine.transcribe(None)
+        transcribed, audio_data = self.passive_stt_engine.transcribe(None)
+
+        with tempfile.NamedTemporaryFile(mode='w+b', delete=True, suffix='.wav') as f:
+            wav_fp = wave.open(f, 'wb')
+            wav_fp.setnchannels(1)
+            wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
+            wav_fp.setframerate(16000)
+            wav_fp.writeframes(''.join(audio_data))
+            wav_fp.close()
+
+            #import subprocess
+            #print(f.name)
+            #cmd = ['aplay', '-D', 'plughw:0,0', f.name]
+            #subprocess.call(cmd)
+
+            self._logger.debug('Trying to read WAV file: {}'.format(f.name))
+            ret = self._emotion.featurise(f.name, '/tmp/tmpOpenSMILE.arff')
+            self._logger.debug('Return code from featurise: {}'.format(ret))
+            prediction, label = self._emotion.predict_no_pandas('/tmp/tmpOpenSMILE.arff')
+            self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
         
         if any(PERSONA in phrase for phrase in transcribed):
             return (True, PERSONA)
@@ -223,7 +242,7 @@ class Mic:
         RATE = 16000
         CHUNK = 1024
         LISTEN_TIME = 12
-
+    
         # check if no threshold provided
         if THRESHOLD is None:
             THRESHOLD = self.fetchThreshold()

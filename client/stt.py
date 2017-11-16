@@ -176,11 +176,15 @@ class SnowboySTT(AbstractSTTEngine):
         global hotword_detected
         hotword_detected = False
 
+        global audio_data
+        audio_data = None
 
         def detection_callback(ans=None, data=None):
             global hotword_detected
             #snowboydecoder.play_audio_file()
             hotword_detected = True
+            global audio_data
+            audio_data = data
 
         def interrupt_callback():
             return hotword_detected
@@ -191,9 +195,9 @@ class SnowboySTT(AbstractSTTEngine):
         self.detector.terminate()
 
         if hotword_detected:
-            return ["JASPER"]
+            return (["JASPER"], audio_data)
         else:
-            return []
+            return ([], None)
 
 
 class SnowboySTT_off(AbstractSTTEngine):
