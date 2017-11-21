@@ -41,7 +41,7 @@ class Emotion(object):
                 os.makedirs(self._sessionRoot)
         
 
-    def featurise(self, input, output):
+    def featuriseOpenSMILE(self, input, output):
 
         if self._sessionLogging == True:
             timestamp = jasperpath.get_timestamp()
@@ -74,7 +74,7 @@ class Emotion(object):
         
         return (p_status, output, lld_output)
 
-    def featuriseXBOW(self, input, output):
+    def featuriseOpenXBOW(self, input, output):
 
         if self._sessionLogging == True:
             timestamp = jasperpath.get_timestamp()
@@ -106,7 +106,7 @@ class Emotion(object):
         return (p_status, output)
 
 
-    def predict_no_pandas(self, feature_file, event_type):
+    def predict(self, feature_file, event_type):
         '''
         # This function doesn't use pandas dataframes, so should be faster without it
         '''
@@ -227,44 +227,3 @@ class Emotion(object):
 
         return (prediction, label)
 
-
-    def predict(self, feature_file):
-        
-        func_start_time = timeit.default_timer()
-
-        start_time = timeit.default_timer()
-
-        self._logger.info('Loading data from ARFF file {}'.format(feature_file))
-
-        data = liacarff.load(open(feature_file))
-        self._logger.info('ARFF file loaded.')
-
-        elapsed = timeit.default_timer() - start_time
-        self._logger.info('Total elapsed time to load ARFF: {}'.format(str(timedelta(seconds=elapsed))))
-
-        start_time = timeit.default_timer()
-
-        self._logger.info('Creating pandas DataFrame.')
-        attributes = ['{}'.format(a[0]) for a in data['attributes']]
-        df = pd.DataFrame(data=data['data'], columns=attributes)
-        df.drop(['name', 'class'], axis=1, inplace=True)
-
-        X = self._scaler.transform(df)
-
-        elapsed = timeit.default_timer() - start_time
-        self._logger.info('Total elapsed time to create pandas DataFrame: {}'.format(str(timedelta(seconds=elapsed))))
-        
-        start_time = timeit.default_timer()
-
-        self._logger.info('Making prediction on emotion...')
-        prediction = self._model.predict(X)
-        label = self._encoder.inverse_transform(prediction)
-        self._logger.info('Emotion predicted: {}'.format((prediction, label)))
-
-        elapsed = timeit.default_timer() - start_time
-        self._logger.info('Total elapsed time to make a prediction: {}'.format(str(timedelta(seconds=elapsed))))
-
-        elapsed = timeit.default_timer() - func_start_time
-        self._logger.info('Total elapsed time for function: {}'.format(str(timedelta(seconds=elapsed))))
-
-        return (prediction, label)
