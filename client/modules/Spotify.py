@@ -96,6 +96,7 @@ class MusicMode(object):
                 self.music.play()
             else:
                 self.mic.say("Sorry, I couldn't find {} by {}".format(result[0], result[1]))
+                self.music.play()
             
             return
         elif "PLAYLIST" in command:
@@ -103,17 +104,17 @@ class MusicMode(object):
         elif "PLAY LIST" in command:
             command = command.replace("PLAY LIST", "")
         elif "STOP" in command:
-            self.mic.say("Stopping music")
+            #self.mic.say("Stopping music")
             self.music.stop()
             return
         elif "NEXT" in command:
-            self.mic.say("Next song")
+            #self.mic.say("Next song")
             self.music.play()  # backwards necessary to get mopidy to work
             self.music.next()
             self.mic.say("Playing %s" % self.music.current_song())
             return
         elif "PREVIOUS" in command:
-            self.mic.say("Previous song")
+            #self.mic.say("Previous song")
             self.music.play()  # backwards necessary to get mopidy to work
             self.music.previous()
             self.mic.say("Playing %s" % self.music.current_song())
@@ -126,18 +127,16 @@ class MusicMode(object):
             self.music.play()
             return
         elif "PAUSE" in command:
-            self.mic.say("Pausing music")
-            # not pause because would need a way to keep track of pause/play
-            # state
-            self.music.stop()
+            #self.mic.say("Pausing music")
+            self.music.pause()
             return
         elif any(ext in command for ext in ["LOUDER", "HIGHER", "TURN IT UP"]):
-            self.mic.say("Louder")
+            #self.mic.say("Louder")
             self.music.volume(interval=10)
             self.music.play()
             return
         elif any(ext in command for ext in ["SOFTER", "LOWER", "TURN IT DOWN"]):
-            self.mic.say("Softer")
+            #self.mic.say("Softer")
             self.music.volume(interval=-10)
             self.music.play()
             return
@@ -170,7 +169,7 @@ class MusicMode(object):
         #    self.mic.say("No playlists found. Resuming current song.")
         #    self.music.play()
 
-        return
+        return False # we couldn't handle the request
 
     def handleForever(self):
 
@@ -193,10 +192,12 @@ class MusicMode(object):
                 if "close" in input.lower():
                     self.mic.say("Closing Spotify")
                     return
-                self.delegateInput(input)
+                isSuccess = self.delegateInput(input)
+                if isSuccess == False:
+                    self.music.pause()
             else:
                 self.mic.say("Pardon?")
-                self.music.play()
+                self.music.pause()
 
 
 def reconnect(func, *default_args, **default_kwargs):
@@ -215,9 +216,9 @@ def reconnect(func, *default_args, **default_kwargs):
             return func(self, *default_args, **default_kwargs)
         except:
             self.client = mpd2.MPDClient()
-            self.client.timeout = None
+            self.client.timeout = 8
             self.client.idletimeout = None
-            self.client.connect(self.server, self.port)
+            self.client.connect(self.server, self.port, timeout=8)
 
             return func(self, *default_args, **default_kwargs)
 
@@ -245,9 +246,9 @@ class MPDWrapper(object):
 
         # prepare client
         self.client = mpd2.MPDClient()
-        self.client.timeout = None
+        self.client.timeout = 8
         self.client.idletimeout = None
-        self.client.connect(self.server, self.port)
+        self.client.connect(self.server, self.port, timeout=8)
 
         # gather playlists
         #self.playlists = [x["playlist"] for x in self.client.listplaylists()]
@@ -280,7 +281,7 @@ class MPDWrapper(object):
         
         self.client.clear()
         search_results = self.client.search('title', title, 'artist', artist)
-        #self._logger.debug(search_results[0])
+        self._logger.debug(search_results[0])
         self.client.add(search_results[0]['file'])
         self.current_song()
         self.play()
@@ -354,7 +355,10 @@ class MPDWrapper(object):
             self.client.clear()
             self.client.load(playlist_name)
 
-        self.client.play()
+        if self.state() == 'pause':
+            self.client.pause()
+        else:
+            self.client.play()
 
     @reconnect
     def current_song(self):
@@ -413,6 +417,15 @@ class MPDWrapper(object):
     def previous(self):
         self.client.previous()
         return
+
+    @reconnect
+    def state(self):
+        status = self.client.status()
+        state = None
+        if 'state' in status:
+            state = status['state']
+        
+        return state
 
     def get_soup(self):
         """
