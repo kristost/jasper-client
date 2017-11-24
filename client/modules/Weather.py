@@ -34,6 +34,7 @@ def replaceAcronyms(text):
     text = re.sub(r'(\b\d+)F(\b)', '\g<1> Fahrenheit\g<2>', text)
     text = re.sub(r'(\b)mph(\b)', '\g<1>miles per hour\g<2>', text)
     text = re.sub(r'(\b)in\.', '\g<1>inches', text)
+    text = re.sub(r'(\b) &deg; C(\b)', '\g<1>  degrees celsius\g<2>', text)
 
     return text
 
