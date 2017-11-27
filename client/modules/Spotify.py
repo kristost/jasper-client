@@ -6,6 +6,7 @@ import mpd as mpd2
 from client.mic import Mic
 #import MPDWrapper2
 import time
+import random
 
 # Standard module stuff
 WORDS = ["SPOTIFY"]
@@ -39,7 +40,7 @@ def handle(text, mic, profile):
                 "read the documentation to learn how to configure Spotify.")
         return
 
-    mic.say("Please give me a moment, I'm loading your Spotify playlists.")
+    mic.say("Starting Spotify...")
 
     # FIXME: Make this configurable
     persona = 'JASPER'
@@ -83,13 +84,38 @@ class MusicMode(object):
         #self.mic = Mic(mic.speaker,
         #               mic.passive_stt_engine,
         #               music_stt_engine)
+        self.rickrollin = False
 
     def delegateInput(self, input):
 
         command = input.upper()
 
+        if self.rickrollin and "PLEASE" not in command:
+            random_phrase = random.choice([
+                "Pardon?", 
+                "I'm sorry, could you try saying that again?", 
+                "I'm sorry, I don't speak 'rude'.", 
+                "What's the magic word?", 
+                "You didn't say 'please'."])
+            self.mic.say(random_phrase)
+            self.music.play()
+            return
+        elif self.rickrollin and "PLEASE" in command:
+            self._logger.debug('Keyword "Please" detected in phrase.')
+            self.mic.say("OK, since you asked so nicely.")
+            self.rickrollin = False
+    
         # check if input is meant to start the music module
-        if "SPOTIFY" in command:
+        
+        # Rickroll the user (intended for a laugh/get a rise out of them -- for emotion detection)
+        if any(ext in command for ext in ["FAVORITE", "FAVOURITE"]):
+            success, result = self.music.rickroll()
+            if success:
+                self.music.play()
+                self.music.seekcur(44) # start playing at the chorus!
+                self.rickrollin = True
+            return
+        elif "SPOTIFY" in command:
             success, result = self.music.searchadd(command)
             self._logger.info("Search success: {}; Found: {}".format(success, result))
             if success:
@@ -196,6 +222,8 @@ class MusicMode(object):
             if not transcribed or not threshold:
                 self._logger.info("Nothing has been said or transcribed.")
                 continue
+
+            print(self.music.state())
 
             if self.music.state() != 'pause':
                 self.music.pause()
@@ -304,6 +332,22 @@ class MPDWrapper(object):
         self.current_song()
         self.play()
 
+
+    @reconnect
+    def rickroll(self):
+        search_result = self.client.search('title', 'never gonna give you up', 'artist', 'rick astley')
+        
+        if search_result:
+            search_result = [x for x in search_result if 'track' in x['file']]
+            track = search_result[0]
+            self._logger.info(track)
+            #print(track)
+            
+            self.client.clear()
+            self.client.add(track['file'])
+            return (True, track)
+
+        return (False, None)
 
     @reconnect
     def searchadd(self, query):
@@ -444,12 +488,12 @@ class MPDWrapper(object):
 
     @reconnect
     def state(self):
-        status = self.client.status()
-        state = None
-        if 'state' in status:
-            state = status['state']
-        
-        return state
+        return self.client.status()['state']
+
+    @reconnect
+    def seekcur(self, time):
+        self.client.seekcur(time)
+        return
 
     def get_soup(self):
         """
