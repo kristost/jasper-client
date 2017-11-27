@@ -5,6 +5,7 @@ import difflib
 import mpd as mpd2
 from client.mic import Mic
 #import MPDWrapper2
+import time
 
 # Standard module stuff
 WORDS = ["SPOTIFY"]
@@ -109,18 +110,21 @@ class MusicMode(object):
             return
         elif "NEXT" in command:
             #self.mic.say("Next song")
-            self.music.play()  # backwards necessary to get mopidy to work
             self.music.next()
+            time.sleep(0.25)
             self.mic.say("Playing %s" % self.music.current_song())
+            self.music.play()  # backwards necessary to get mopidy to work
             return
         elif "PREVIOUS" in command:
             #self.mic.say("Previous song")
-            self.music.play()  # backwards necessary to get mopidy to work
             self.music.previous()
+            time.sleep(0.25)
             self.mic.say("Playing %s" % self.music.current_song())
+            self.music.play()  # backwards necessary to get mopidy to work
             return
         elif "CURRENT" in command:
             self.mic.say("Playing %s" % self.music.current_song())
+            self.music.play()  # backwards necessary to get mopidy to work
             return
         elif "PLAY" in command:
             self.mic.say("Playing %s" % self.music.current_song())
@@ -128,17 +132,26 @@ class MusicMode(object):
             return
         elif "PAUSE" in command:
             #self.mic.say("Pausing music")
-            self.music.pause()
+            #self.music.pause()
+            # do nothing because listening for the keyword will pause the music anyways
             return
-        elif any(ext in command for ext in ["LOUDER", "HIGHER", "TURN IT UP"]):
+        elif any(ext in command for ext in ["LOUDER", "HIGHER", "TURN IT UP", "VOLUME UP"]):
             #self.mic.say("Louder")
             self.music.volume(interval=10)
             self.music.play()
             return
-        elif any(ext in command for ext in ["SOFTER", "LOWER", "TURN IT DOWN"]):
+        elif any(ext in command for ext in ["SOFTER", "LOWER", "TURN IT DOWN", "VOLUME DOWN"]):
             #self.mic.say("Softer")
             self.music.volume(interval=-10)
             self.music.play()
+            return
+        elif "VOLUME" in command:
+            p = re.compile('set(?: the)? volume(?:[ a-zA-Z]+)? (\d)', re.IGNORECASE)
+            match = p.match(command)
+            if match:
+                level = int(match.group(1)) * 10                
+                self.music.volume(level=level)
+                self.music.play()
             return
         
         # SONG SELECTION... requires long-loading dictionary and language model
@@ -184,7 +197,8 @@ class MusicMode(object):
                 self._logger.info("Nothing has been said or transcribed.")
                 continue
 
-            self.music.pause()
+            if self.music.state() != 'pause':
+                self.music.pause()
 
             input = self.mic.activeListen(MUSIC=True)
 
@@ -193,10 +207,13 @@ class MusicMode(object):
                     self.mic.say("Closing Spotify")
                     return
                 isSuccess = self.delegateInput(input)
+                print("IsSuccess: {}".format(isSuccess))
                 if isSuccess == False:
+                    # request failed, un-pause()
                     self.music.pause()
             else:
                 self.mic.say("Pardon?")
+                #un-pause()
                 self.music.pause()
 
 
@@ -207,7 +224,7 @@ def reconnect(func, *default_args, **default_kwargs):
 
     def wrap(self, *default_args, **default_kwargs):
         try:
-            self.client.connect(self.server, self.port)
+            self.client.connect(self.server, self.port, timeout=8)
         except:
             pass
 
@@ -249,6 +266,7 @@ class MPDWrapper(object):
         self.client.timeout = 8
         self.client.idletimeout = None
         self.client.connect(self.server, self.port, timeout=8)
+        self.client.setvol(50)
 
         # gather playlists
         #self.playlists = [x["playlist"] for x in self.client.listplaylists()]
@@ -299,6 +317,8 @@ class MPDWrapper(object):
         p = re.compile(title_and_artist, re.IGNORECASE)
         match = p.match(query)
     
+        list_add = False
+
         if match and match.group('title').strip() not in ['songs', 'music']:
             self._logger.info(match.groups())
             #print(match.groups())
@@ -315,6 +335,7 @@ class MPDWrapper(object):
             if match.group(1) != None:
                 if 'music by' in match.group(1) or 'songs by' in match.group(1):
                     search_result = self.client.search('artist', keywords)
+                    list_add = True
             else:
                 search_result = self.client.search('title', keywords)
         
@@ -325,7 +346,10 @@ class MPDWrapper(object):
             #print(track)
             
             self.client.clear()
-            self.client.add(track['file'])
+            if list_add:
+                [self.client.add(t['file']) for t in search_result]
+            else:
+                self.client.add(track['file'])
             #self.current_song()
             #self.play()
             return (True, track)
