@@ -13,22 +13,19 @@ import shutil
 
 class Emotion(object):
 
-    def __init__(self, sessionLogging=False, sessionRoot='~'):
+    def __init__(self, sessionLogging=False, sessionRoot='~', xbow_enabled=False):
 
         self._logger = logging.getLogger(__name__)
         self._feature_set = 'eGeMAPSv01a'
         self._feature_map = dict({'ComParE_2016': [6376,6375,6374], 'eGeMAPSv01a': [-1, 91, 89, 88]})
 
-        
+        # openSMILE/sklearn classifier
         model, scaler, encoder = pickle.load(open('Classifier.pkl', 'rb'))
         self._model = model
         self._scaler = scaler
         self._encoder = encoder
 
-        #self._model = pickle.load(open('Model.pkl', 'rb'))
-        #self._scaler = pickle.load(open('Scaler.pkl', 'rb'))
-        #self._encoder = pickle.load(open('Encoder.pkl', 'rb'))
-        
+        # openXBOW/sklearn classifier
         self._xbow_model, self._xbow_scaler, self._xbow_encoder = pickle.load(open('openXBOW/emodb_ComParE_2016_xbow.pkl', 'rb'))
 
         # TODO: Use jasper config (yaml) file to retrieve openSMILE path/bin location
@@ -51,7 +48,8 @@ class Emotion(object):
             if not os.path.exists(self._sessionRoot):
                 self._logger.info('Creating session directory: "{}"'.format(self._sessionRoot))
                 os.makedirs(self._sessionRoot)
-        
+
+        self._xbow_enabled = xbow_enabled        
 
     def featuriseOpenSMILE(self, input, output):
 
@@ -64,9 +62,10 @@ class Emotion(object):
                 ' -C ', self._opensmile_path + self._config_path,
                 ' -I ', input,
                 ' -O ', output,
-                ' -lldarffoutput ', lld_output,
-                ' -appendarfflld 0 ',
                 ' -timestamparff 1']
+
+        if self._xbow_enabled:
+            args.extend(' -lldarffoutput ', lld_output, ' -appendarfflld 0 ')
 
         self._logger.debug(args)
         cmd = ''.join(args)
@@ -93,11 +92,11 @@ class Emotion(object):
             output = self._sessionRoot + '/' + timestamp + '.xbow.arff'
         
         args = ['java -jar ', self._openxbow_path + '/' + self._openxbow_bin,
-                ' -b ', 'openXBOW/emodb_ComParE_2016.codebook',
+                ' -b ', 'openXBOW/emodb_ComParE_2016.codebook', #TODO: make configurable...
                 ' -i ', input,
                 ' -o ', output,
                 ' -noLabels ',
-                ' -attributes nt1[65]2[65]c']
+                ' -attributes nt1[65]2[65]c'] #TODO: make configurable
 
         self._logger.debug(args)
         cmd = ''.join(args)
@@ -109,11 +108,6 @@ class Emotion(object):
 
         elapsed = timeit.default_timer() - start_time
         self._logger.info('Total elapsed time for openXBOW feature extraction: {}'.format(str(timedelta(seconds=elapsed))))
-        
-        #if p_status == 0 and self._sessionLogging:
-        #    dest = self._sessionRoot + '/' + timestamp + '.wav'
-        #    self._logger.info("Copying WAV file '{}' to '{}'".format(input, dest))
-        #    shutil.copyfile(input, dest)
         
         return (p_status, output)
 
