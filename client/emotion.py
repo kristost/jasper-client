@@ -13,7 +13,7 @@ import shutil
 
 class Emotion(object):
 
-    def __init__(self, sessionLogging=False, sessionRoot='~', xbow_enabled=False):
+    def __init__(self, session_record=False, session_id=None, sessionRoot='~', xbow_enabled=False):
 
         self._logger = logging.getLogger(__name__)
         self._feature_set = 'eGeMAPSv01a'
@@ -40,10 +40,13 @@ class Emotion(object):
         self._openxbow_path = '/home/pi/github/openXBOW/'
         self._openxbow_bin = 'openXBOW.jar'
 
-        self._sessionLogging = sessionLogging
-        if self._sessionLogging:
+        self._session_record = session_record
+        if self._session_record:
             homedir = os.path.expanduser(sessionRoot)
-            self._sessionRoot = homedir + '/' + 'session_' + datetime.today().strftime('%d%m%YT%H%M')
+            if not session_id:
+                session_id = datetime.today().strftime('%d%m%YT%H%M')
+
+            self._sessionRoot = homedir + '/' + 'session_' + session_id
 
             if not os.path.exists(self._sessionRoot):
                 self._logger.info('Creating session directory: "{}"'.format(self._sessionRoot))
@@ -53,7 +56,8 @@ class Emotion(object):
 
     def featuriseOpenSMILE(self, input, output):
 
-        if self._sessionLogging == True:
+        lld_output = None
+        if self._session_record:
             timestamp = jasperpath.get_timestamp()
             output = self._sessionRoot + '/' + timestamp + '.arff'
             lld_output = self._sessionRoot + '/' + timestamp + '.lld.arff'
@@ -64,7 +68,7 @@ class Emotion(object):
                 ' -O ', output,
                 ' -timestamparff 1']
 
-        if self._xbow_enabled:
+        if self._session_record and self._xbow_enabled:
             args.extend(' -lldarffoutput ', lld_output, ' -appendarfflld 0 ')
 
         self._logger.debug(args)
@@ -78,7 +82,7 @@ class Emotion(object):
         elapsed = timeit.default_timer() - start_time
         self._logger.info('Total elapsed time for openSMILE feature extraction: {}'.format(str(timedelta(seconds=elapsed))))
         
-        if p_status == 0 and self._sessionLogging:
+        if p_status == 0 and self._session_record:
             dest = self._sessionRoot + '/' + timestamp + '.wav'
             self._logger.info("Copying WAV file '{}' to '{}'".format(input, dest))
             shutil.copyfile(input, dest)
@@ -87,7 +91,7 @@ class Emotion(object):
 
     def featuriseOpenXBOW(self, input, output):
 
-        if self._sessionLogging == True:
+        if self._session_record == True:
             timestamp = jasperpath.get_timestamp()
             output = self._sessionRoot + '/' + timestamp + '.xbow.arff'
         
@@ -147,7 +151,6 @@ class Emotion(object):
         print('Features truncated to {}'.format(len(X)))
 
         X = np.reshape(X, (1,-1))
-        print(X.shape)
         X = self._scaler.transform(X)
         
         elapsed = timeit.default_timer() - start_time
@@ -158,7 +161,7 @@ class Emotion(object):
         self._logger.info('Making prediction on emotion...')
         prediction = self._model.predict(X)
         label = self._encoder.inverse_transform(prediction)
-        if self._sessionLogging:
+        if self._session_record:
             #print(feature_file)
             #print(os.path.basename(feature_file))
             #print(os.path.splitext(os.path.basename(feature_file)))
@@ -218,7 +221,7 @@ class Emotion(object):
         self._logger.info('Making prediction on emotion...')
         prediction = self._xbow_model.predict(X)
         label = self._xbow_encoder.inverse_transform(prediction)
-        if self._sessionLogging:
+        if self._session_record:
             #print(feature_file)
             #print(os.path.basename(feature_file))
             #print(os.path.splitext(os.path.basename(feature_file)))

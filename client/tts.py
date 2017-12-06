@@ -136,6 +136,7 @@ class BingTTS(AbstractTTSEngine):
                 " xml:gender='Female' name='Microsoft Server Speech Text to Speech Voice (en-US, ZiraRUS)'>" +\
                 "{}</voice></speak>"
         
+        phrase = re.sub('\s&\s{0,}', ' &amp; ', phrase)
         ssml = ssml.format(phrase)
 
         r = requests.post(base_url, data=ssml, headers=headers)
@@ -153,7 +154,8 @@ class BingTTS(AbstractTTSEngine):
         try:
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            self._logger.critical('Request failed with response: %r', r.reason, exc_info=True)            
+            self._logger.critical('Request failed with response: %r', r.reason, exc_info=True)
+            self._logger.critical(ssml)            
         else:
             fname = self.write_audio(r.content)
             self._logger.debug("Saying '%s' with '%s'", phrase, self.SLUG)

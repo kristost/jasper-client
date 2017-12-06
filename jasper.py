@@ -14,6 +14,7 @@ from client import stt
 from client import jasperpath
 from client import diagnose
 from client.conversation import Conversation
+from client.emotion import Emotion
 
 # Add jasperpath.LIB_PATH to sys.path
 sys.path.append(jasperpath.LIB_PATH)
@@ -28,6 +29,9 @@ parser.add_argument('--no-network-check', action='store_true',
 parser.add_argument('--diagnose', action='store_true',
                     help='Run diagnose and exit')
 parser.add_argument('--debug', action='store_true', help='Show debug messages')
+parser.add_argument('--session_record', action='store_true', help='Enable recording of audio data to disk')
+parser.add_argument('--session_id', action='store', help='Set the session id')
+
 args = parser.parse_args()
 
 if args.local:
@@ -107,9 +111,12 @@ class Jasper(object):
         tts_engine_class = tts.get_engine_by_slug(tts_engine_slug)
 
         # Initialize Mic
+        emotion_engine = Emotion(session_record=args.session_record, session_id=args.session_id)
+
         self.mic = Mic(tts_engine_class.get_instance(),
                        stt_passive_engine_class.get_passive_instance(),
-                       stt_engine_class.get_active_instance())
+                       stt_engine_class.get_active_instance(),
+                       emotion_engine)
 
         # Initialise a local_mic for outputting text only
         import client.local_mic 

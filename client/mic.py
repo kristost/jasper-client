@@ -18,7 +18,7 @@ class Mic:
     speechRec = None
     speechRec_persona = None
 
-    def __init__(self, speaker, passive_stt_engine, active_stt_engine):
+    def __init__(self, speaker, passive_stt_engine, active_stt_engine, emotion_engine):
         """
         Initiates the pocketsphinx instance.
 
@@ -38,7 +38,7 @@ class Mic:
         self._audio = pyaudio.PyAudio()
         self._logger.info("Initialization of PyAudio completed.")
 
-        self._emotion = Emotion(True)
+        self._emotion = emotion_engine
 
     def __del__(self):
         self._audio.terminate()
