@@ -32,6 +32,7 @@ class Conversation(object):
             self._logger.debug("Stopped listening for keyword '%s'",
                                self.persona)
 
+            # transcribed = False
             if not transcribed or not threshold:
                 self._logger.info("Nothing has been said or transcribed.")
                 continue

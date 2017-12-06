@@ -223,8 +223,6 @@ class MusicMode(object):
                 self._logger.info("Nothing has been said or transcribed.")
                 continue
 
-            print(self.music.state())
-
             if self.music.state() != 'pause':
                 self.music.pause()
 

@@ -203,23 +203,12 @@ class Mic:
             wav_fp.writeframes(''.join(audio_data))
             wav_fp.close()
 
-            #import subprocess
-            #print(f.name)
-            #cmd = ['aplay', '-D', 'plughw:0,0', f.name]
-            #subprocess.call(cmd)
-
-            #self._logger.debug('Trying to read WAV file: {}'.format(f.name))
-            #ret, feature_file, lld = self._emotion.featuriseOpenSMILE(f.name, '/tmp/tmpOpenSMILE.arff')
-            #self._logger.debug('Return code from featurise openSMILE: {}'.format(ret))
-            #prediction, label = self._emotion.predict(feature_file, 'wakeword')
-            #self._logger.info('Predicted openSMILE emotion: {} {}'.format(prediction[0], label[0].upper()))
+            self._logger.debug('Trying to read WAV file: {}'.format(f.name))
+            ret, feature_file, lld = self._emotion.featuriseOpenSMILE(f.name, '/tmp/tmpOpenSMILE.arff')
+            self._logger.debug('Return code from featurise openSMILE: {}'.format(ret))
+            prediction, label = self._emotion.predict(feature_file, 'wakeword')
+            self._logger.info('Predicted openSMILE emotion: {} {}'.format(prediction[0], label[0].upper()))
         
-            #self._logger.debug('Trying to read openSMILE ARFF file: {}'.format(lld))
-            #ret, xbow_feature_file = self._emotion.featuriseOpenXBOW(lld, '/tmp/tmpOpenXBOW.arff')
-            #self._logger.debug('Return code from featurise openXBOW: {}'.format(ret))
-            #prediction, label = self._emotion.predictXBOW(xbow_feature_file, 'wakeword')
-            #self._logger.info('Predicted openXBOW emotion: {} {}'.format(prediction[0], label[0].upper()))
-
         if any(PERSONA in phrase for phrase in transcribed):
             return (True, PERSONA)
 
@@ -308,17 +297,11 @@ class Mic:
             #self._logger.info('Trying to "touch" ARFF file: {}'.format(arff))
             #os.close(arff_handle)
 
-            #self._logger.debug('Trying to read WAV file: {}'.format(f.name))
-            #ret, feature_file, lld = self._emotion.featuriseOpenSMILE(f.name, '/tmp/tmpOpenSMILE.arff')
-            #self._logger.debug('Return code from featurise openSMILE: {}'.format(ret))
-            #prediction, label = self._emotion.predict(feature_file, 'command')
-            #self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
-
-            #self._logger.debug('Trying to read openSMILE ARFF file: {}'.format(lld))
-            #ret, xbow_feature_file = self._emotion.featuriseOpenXBOW(lld, '/tmp/tmpOpenXBOW.arff')
-            #self._logger.debug('Return code from featurise openXBOW: {}'.format(ret))
-            #prediction, label = self._emotion.predictXBOW(xbow_feature_file, 'wakeword')
-            #self._logger.info('Predicted openXBOW emotion: {} {}'.format(prediction[0], label[0].upper()))
+            self._logger.debug('Trying to read WAV file: {}'.format(f.name))
+            ret, feature_file, lld = self._emotion.featuriseOpenSMILE(f.name, '/tmp/tmpOpenSMILE.arff')
+            self._logger.debug('Return code from featurise openSMILE: {}'.format(ret))
+            prediction, label = self._emotion.predict(feature_file, 'command')
+            self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
 
             f.seek(0)
             return self.active_stt_engine.transcribe(f)

@@ -16,9 +16,18 @@ class Emotion(object):
     def __init__(self, sessionLogging=False, sessionRoot='~'):
 
         self._logger = logging.getLogger(__name__)
-        self._model = pickle.load(open('Model.pkl', 'rb'))
-        self._scaler = pickle.load(open('Scaler.pkl', 'rb'))
-        self._encoder = pickle.load(open('Encoder.pkl', 'rb'))
+        self._feature_set = 'eGeMAPSv01a'
+        self._feature_map = dict({'ComParE_2016': [6376,6375,6374], 'eGeMAPSv01a': [-1, 91, 89, 88]})
+
+        
+        model, scaler, encoder = pickle.load(open('Classifier.pkl', 'rb'))
+        self._model = model
+        self._scaler = scaler
+        self._encoder = encoder
+
+        #self._model = pickle.load(open('Model.pkl', 'rb'))
+        #self._scaler = pickle.load(open('Scaler.pkl', 'rb'))
+        #self._encoder = pickle.load(open('Encoder.pkl', 'rb'))
         
         self._xbow_model, self._xbow_scaler, self._xbow_encoder = pickle.load(open('openXBOW/emodb_ComParE_2016_xbow.pkl', 'rb'))
 
@@ -26,7 +35,10 @@ class Emotion(object):
 
         self._opensmile_path = '/home/pi/openSMILE/opensmile-2.3.0/'
         self._bin_path = 'inst/bin/SMILExtract'
-        self._config_path = 'config/ComParE_2016.conf'
+        if 'GeMAPS' in self._feature_set:
+            self._config_path = 'config/gemaps/' + self._feature_set + '.conf'
+        else:
+            self._config_path = 'config/' + self._feature_set + '.conf'
 
         self._openxbow_path = '/home/pi/github/openXBOW/'
         self._openxbow_bin = 'openXBOW.jar'
@@ -128,16 +140,20 @@ class Emotion(object):
         X = data['data'][0]
         self._logger.info('Found {} features'.format(len(X)))
 
-        if len(X) == 6376:
+        if len(X) == self._feature_map[self._feature_set][0]:
+            # Remove 'name', 'frameTime' and 'class'
             X = X[2:-1]
-        elif len(X) == 6375:
+        elif len(X) == self._feature_map[self._feature_set][1]:
+            # Remove 'name' and 'class'
             X = X[1:-1]
-            print('Features truncated to {}'.format(len(X)))
-        elif len(X) == 6374:
+        elif len(X) == self._feature_map[self._feature_set][2]:
+            # Remove 'name'
             X = X[1:]
-            print('Features truncated to {}'.format(len(X)))
+
+        print('Features truncated to {}'.format(len(X)))
 
         X = np.reshape(X, (1,-1))
+        print(X.shape)
         X = self._scaler.transform(X)
         
         elapsed = timeit.default_timer() - start_time
