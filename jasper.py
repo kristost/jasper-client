@@ -9,6 +9,9 @@ import logging
 import yaml
 import argparse
 
+from datetime import datetime, timedelta
+import time
+
 from client import tts
 from client import stt
 from client import jasperpath
@@ -31,8 +34,28 @@ parser.add_argument('--diagnose', action='store_true',
 parser.add_argument('--debug', action='store_true', help='Show debug messages')
 parser.add_argument('--session_record', action='store_true', help='Enable recording of audio data to disk')
 parser.add_argument('--session_id', action='store', help='Set the session id')
+parser.add_argument('--countdown', action='store', help='Set the length of the countdown until start. (only makes sense when recording)')
 
 args = parser.parse_args()
+
+if args.session_record and args.session_id:
+    countdown = 10
+    if args.countdown:
+        countdown = int(args.countdown)
+
+    now = datetime.now()
+    print('The date and time is: {}'.format(now.strftime('%B %d %Y %H:%M')))
+    for i in reversed(range(countdown)):
+        print(i)
+        time.sleep(1)
+
+    print('mark')
+    now = datetime.now()
+    print(now.strftime('%M:%S.%f')[:-4])
+    timestamp = now.strftime('%d%m%YT%H%M')
+    print('The datetime now is: {}'.format(now))
+    time.sleep(countdown)
+    args.session_id += '_' + timestamp
 
 if args.local:
     from client.local_mic import Mic

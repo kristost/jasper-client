@@ -9,6 +9,7 @@ import audioop
 import pyaudio
 import alteration
 import jasperpath
+from datetime import datetime, timedelta
 
 from emotion import Emotion
 import os
@@ -194,6 +195,7 @@ class Mic:
     def passiveListen(self, PERSONA):
         
         transcribed, audio_data = self.passive_stt_engine.transcribe(None)
+        event_time = datetime.now() - timedelta(seconds=2) #passive engine (snowboy) has a 2-sec buffer
 
         with tempfile.NamedTemporaryFile(mode='w+b', delete=True, suffix='.wav') as f:
             wav_fp = wave.open(f, 'wb')
@@ -201,12 +203,13 @@ class Mic:
             wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
             wav_fp.setframerate(16000)
             wav_fp.writeframes(''.join(audio_data))
+            duration = wav_fp.getnframes()/float(wav_fp.getframerate())
             wav_fp.close()
-
+            
             self._logger.debug('Trying to read WAV file: {}'.format(f.name))
             ret, feature_file, lld = self._emotion.featuriseOpenSMILE(f.name, '/tmp/tmpOpenSMILE.arff')
             self._logger.debug('Return code from featurise openSMILE: {}'.format(ret))
-            prediction, label = self._emotion.predict(feature_file, 'wakeword')
+            prediction, label = self._emotion.predict(feature_file, 'wakeword', event_time, duration)
             self._logger.info('Predicted openSMILE emotion: {} {}'.format(prediction[0], label[0].upper()))
         
         if any(PERSONA in phrase for phrase in transcribed):
@@ -214,7 +217,6 @@ class Mic:
 
         return (False, transcribed)
         
-
     def activeListen(self, THRESHOLD=None, LISTEN=True, MUSIC=False):
         """
             Records until a second of silence or times out after 12 seconds
@@ -259,6 +261,8 @@ class Mic:
         self._logger.info('Established a command threshold of {}'.format(THRESHOLD * 0.8))
 
         timeout_reached = True
+        event_time = datetime.now()
+
         for i in range(0, RATE / CHUNK * LISTEN_TIME):
 
             data = stream.read(CHUNK)
@@ -291,6 +295,7 @@ class Mic:
             wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
             wav_fp.setframerate(RATE)
             wav_fp.writeframes(''.join(frames))
+            duration = wav_fp.getnframes()/float(wav_fp.getframerate())
             wav_fp.close()
 
             #arff_handle, arff = tempfile.mkstemp(suffix='.arff', text=True)
@@ -300,7 +305,7 @@ class Mic:
             self._logger.debug('Trying to read WAV file: {}'.format(f.name))
             ret, feature_file, lld = self._emotion.featuriseOpenSMILE(f.name, '/tmp/tmpOpenSMILE.arff')
             self._logger.debug('Return code from featurise openSMILE: {}'.format(ret))
-            prediction, label = self._emotion.predict(feature_file, 'command')
+            prediction, label = self._emotion.predict(feature_file, 'command', event_time, duration)
             self._logger.info('Predicted emotion: {} {}'.format(prediction[0], label[0].upper()))
 
             f.seek(0)

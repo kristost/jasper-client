@@ -10,6 +10,8 @@ import timeit
 from datetime import timedelta, datetime
 import os
 import shutil
+import threading
+import Queue
 
 class Emotion(object):
 
@@ -86,7 +88,7 @@ class Emotion(object):
             dest = self._sessionRoot + '/' + timestamp + '.wav'
             self._logger.info("Copying WAV file '{}' to '{}'".format(input, dest))
             shutil.copyfile(input, dest)
-        
+          
         return (p_status, output, lld_output)
 
     def featuriseOpenXBOW(self, input, output):
@@ -116,7 +118,7 @@ class Emotion(object):
         return (p_status, output)
 
 
-    def predict(self, feature_file, event_type):
+    def predict(self, feature_file, event_type, event_time, duration):
         '''
         # This function doesn't use pandas dataframes, so should be faster without it
         '''
@@ -161,14 +163,16 @@ class Emotion(object):
         self._logger.info('Making prediction on emotion...')
         prediction = self._model.predict(X)
         label = self._encoder.inverse_transform(prediction)
+        print(event_time)
         if self._session_record:
             #print(feature_file)
             #print(os.path.basename(feature_file))
             #print(os.path.splitext(os.path.basename(feature_file)))
             timestamp, _ = os.path.splitext(os.path.basename(feature_file))
             #print(timestamp)
+            event_formatted = event_time.strftime('%H:%M:%S.%f')[:-3]
             with open(self._sessionRoot + '/' + 'emotions.csv', 'ab') as f:
-                f.write(','.join([timestamp, 'openSMILE', event_type, str(prediction[0]), label[0], '\n']))
+                f.write(','.join([timestamp, 'openSMILE', event_type, str(prediction[0]), label[0], event_time.strftime('%d%m%YT%H%M%S'), event_formatted, str(duration), '\n']))
 
         self._logger.info('Emotion predicted: {}'.format((prediction, label)))
 
