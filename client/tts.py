@@ -131,9 +131,12 @@ class BingTTS(AbstractTTSEngine):
                     'User-Agent': 'Jasper',
                     'Authorization': 'Bearer ' + self.bearer_token}
         
+        #speaker_voice = " <voice xml:lang='en-US' xml:gender='Female' name='Microsoft Server Speech Text to Speech Voice (en-US, ZiraRUS)'>"
+        #speaker_voice = " <voice xml:lang='en-US' xml:gender='Male' name='Microsoft Server Speech Text to Speech Voice (en-US, BenjaminRUS)'>"
+        speaker_voice = " <voice xml:lang='en-GB' xml:gender='Male' name='Microsoft Server Speech Text to Speech Voice (en-GB, George, Apollo)'>"
+
         ssml = "<speak version='1.0' xml:lang='en-US'>" +\
-                "<voice xml:lang='en-US'" +\
-                " xml:gender='Female' name='Microsoft Server Speech Text to Speech Voice (en-US, ZiraRUS)'>" +\
+                speaker_voice +\
                 "{}</voice></speak>"
         
         phrase = re.sub('\s&\s{0,}', ' &amp; ', phrase)

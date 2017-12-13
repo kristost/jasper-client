@@ -2,7 +2,7 @@
 import logging
 from notifier import Notifier
 from brain import Brain
-
+import random
 
 class Conversation(object):
 
@@ -49,4 +49,5 @@ class Conversation(object):
             if input:
                 self.brain.query(input)
             else:
-                self.mic.say("Pardon?")
+                phrases = ["Try saying that again?", "What was that?", "I didn't catch that.", "Say that again?", "What did you say?", "Again please?", "I beg your pardon?"]
+                self.mic.say(random.choice(phrases))
