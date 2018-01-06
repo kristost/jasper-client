@@ -19,7 +19,7 @@ class Emotion(object):
 
         self._logger = logging.getLogger(__name__)
         self._feature_set = 'eGeMAPSv01a'
-        self._feature_map = dict({'ComParE_2016': [6376,6375,6374], 'eGeMAPSv01a': [-1, 91, 89, 88]})
+        self._feature_map = dict({'ComParE_2016': [6376,6375,6374], 'eGeMAPSv01a': [91, 89, 88]})
 
         # openSMILE/sklearn classifier
         model, scaler, encoder = pickle.load(open('Classifier.pkl', 'rb'))

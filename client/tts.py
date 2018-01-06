@@ -116,7 +116,7 @@ class BingTTS(AbstractTTSEngine):
 
         self._logger.info("Authorizing/Renewing OAuth Bearer token")
         auth_url = 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken'
-        auth_headers = {'Ocp-Apim-Subscription-Key': '662a831a31ca4297a8bc5b1b107e8aa3'}
+        auth_headers = {'Ocp-Apim-Subscription-Key': '{}'.format(self.token)}
 
         r = requests.post(auth_url, headers=auth_headers)
         self.bearer_token = r.text
